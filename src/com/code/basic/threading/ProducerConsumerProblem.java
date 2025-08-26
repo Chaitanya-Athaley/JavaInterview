@@ -1,7 +1,6 @@
 package com.code.basic.threading;
 
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class ProducerConsumerProblem {
     private static final int BUFFER_SIZE = 5;
