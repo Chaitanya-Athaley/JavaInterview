@@ -20,6 +20,18 @@ public class GroupAnagrams {
         return new ArrayList<>(map.values());
     }
     
+    //if 2 strings are Anagrams
+    public boolean areAnagrams(String str1, String str2) {
+        if (str1.length() != str2.length()) {
+            return false;
+        }
+        char[] chars1 = str1.toLowerCase().toCharArray();
+        char[] chars2 = str2.toLowerCase().toCharArray();
+        Arrays.sort(chars1);
+        Arrays.sort(chars2);
+        return Arrays.equals(chars1, chars2);
+    }
+    
     public static void main(String[] args) {
         String[] input = {"eat", "tea", "tan", "ate", "nat", "bat"};
         System.out.println("Input array: " + Arrays.toString(input));
