@@ -13,7 +13,6 @@ public class GetDepAndSalaryFromEmployee {
 		 Map<String, List<Double>> collect = emplist.stream().collect(Collectors.groupingBy(Employee::getDepartment, Collectors.mapping(Employee::getSalary, Collectors.toList() )));
 		 collect.entrySet().forEach(n->{
 			 System.out.println(n.getKey()+" "+n.getValue());
-			 
 		 });
 	}
 
