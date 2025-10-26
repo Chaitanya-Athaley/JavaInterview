@@ -7,7 +7,6 @@ public class OptionalExample {
     public static void main(String[] args) {
 
         // 1. Creating Optional objects 
-    	// normal
         Optional<String> optionalWithValue = Optional.of("Hello");
         Optional<String> optionalNullable = Optional.ofNullable(null);
         Optional<String> emptyOptional = Optional.empty();
