@@ -12,8 +12,10 @@ public class GroupAnagrams {
             char[] chars = s.toCharArray();
             Arrays.sort(chars);
             String key = String.valueOf(chars);
-            
-            map.putIfAbsent(key, new ArrayList<>());
+            if(!map.containsKey(key)) {
+            	map.put(key, new ArrayList<String>());
+            }
+//            map.putIfAbsent(key, new ArrayList<>());
             map.get(key).add(s);
         }
         
