@@ -1,17 +1,20 @@
 package com.code.basic.leetcode;
 
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class FindSecondLargestNumFromArray {
 
 	public static void main(String[] args) {
-		int[] arr = {3, 1, 4, 1, 5, 9, 2, 6};
+		int[] arr = {3, 1, 4, 1, 5, 9, 2, 6, 9};
 		int secondLargest = findSecondLargest(arr);
 		//OR
 		int simple = simple(arr);
 		System.out.println(secondLargest);
 		System.out.println(simple);
-
+		//java 8
+		Integer integer = Arrays.stream(arr).distinct().boxed().sorted(Comparator.reverseOrder()).skip(1).findFirst().get();
+		System.out.println(integer);
 	}
 
 	public static int findSecondLargest(int[] arr) {
@@ -39,6 +42,7 @@ public class FindSecondLargestNumFromArray {
 	}
 
 	static int simple(int[] arr){
+		// not work for duplicate elements
 		Arrays.sort(arr);
 		return arr[arr.length - 2];
 	}
