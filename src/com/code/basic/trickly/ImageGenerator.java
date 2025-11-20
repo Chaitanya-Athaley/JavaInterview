@@ -58,7 +58,7 @@ public class ImageGenerator {
 
 		// The API endpoint - Using Gemini 2.5 Flash with image generation support
 		String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + apiKey;
-
+		
 		// Manually create the JSON payload string
 		// Using String.format for clarity, ensuring prompt is properly escaped
 		String payload = String.format("""
