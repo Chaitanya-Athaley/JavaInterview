@@ -2,9 +2,11 @@ package com.code.basic.java8.streams;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -64,7 +66,9 @@ public class SomeStreamsInterview {
     }
 
     public static void secondHighestPaidEmployee(List<Employee> employees) {
+    	Set<Double> uniqueSalary = new HashSet<>();
         Optional<Employee> secondHighest = employees.stream()
+        		.filter(n-> uniqueSalary.add(n.getSalary()))
                 .sorted(Comparator.comparingDouble(Employee::getSalary).reversed())
                 .skip(1)
                 .findFirst();
