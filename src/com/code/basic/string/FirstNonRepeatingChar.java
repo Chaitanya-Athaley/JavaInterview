@@ -5,6 +5,8 @@ import java.util.Map;
 
 public class FirstNonRepeatingChar {
     public static int findFirst(String s) {
+    	// No need to use LinkedHashMap as we are iterating through the string again to find the first non-repeating character,
+        // so we can just use a regular HashMap to count frequencies.
         Map<Character, Integer> frequency = new HashMap<>();
         
         // Count frequency of each character
