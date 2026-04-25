@@ -1,0 +1,14 @@
+Q: Write an SQL Query to return employee Name and Department name where Employee Table have EMpID, Name , dept, salary and Department table have dept_id and dept_name
+Answer: SELECT e.employee_name, d.dept_name FROM Employee e JOIN Department d ON e.department_id = d.department_id;
+
+Q: Wrtire an SQL query to return Emp Name and Department name , Also return the Employees who are not assgined to any department yet.
+Answer: SELECT e.employee_name, d.dept_name FROM Employee e LEFT JOIN Department d ON e.department_id = d.department_id;
+
+Q: Write a Query to return the department name , max min and average salary of that department-> SELECT MAX(e.salary) 
+Answer: SELECT d.dept_name, MAX(e.salary) AS max_salary, MIN(e.salary) AS min_salary, AVG(e.salary) AS avg_salary FROM Employee e JOIN Department d ON e.department_id = d.department_id GROUP BY d.dept_name;
+
+Q: How can you calculate the average salary of employees grouped by their department while also filtering out departments with less than five employees?
+Answer: SELECT department_id, AVG(salary) AS average_salary FROM Employees GROUP BY department_id HAVING COUNT(employee_id) >= 5;
+
+Q:each employee with their department and their manager's name; the manager is also an employee;
+Answer: SELECT e.employee_name, d.dept_name, m.employee_name AS manager_name FROM Employee e JOIN Department d ON e.department_id = d.department_id LEFT JOIN Employee m ON e.manager_id = m.employee_id

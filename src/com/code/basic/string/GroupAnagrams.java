@@ -34,6 +34,21 @@ public class GroupAnagrams {
         return Arrays.equals(chars1, chars2);
     }
     
+    // Without Sort the string char array
+    public static boolean areAnagramWithoutSort(String s1, String s2) {
+    	Map<Character, Integer> input1 = new HashMap<Character, Integer>();
+		Map<Character, Integer> input2 = new HashMap<Character, Integer>();
+    	if(s1.length() == s2.length()) {
+    		for(int i=0; i<s1.length(); i++) {
+    			input1.put(s1.charAt(i), input1.getOrDefault(s1.charAt(i), 0) + 1);
+    			input2.put(s2.charAt(i), input2.getOrDefault(s2.charAt(i), 0) + 1);
+    		}
+        	return input1.equals(input2);
+    	} else {
+        	return false;
+    	}
+    }
+    
     public static void main(String[] args) {
         String[] input = {"eat", "tea", "tan", "ate", "nat", "bat"};
         System.out.println("Input array: " + Arrays.toString(input));
@@ -49,5 +64,8 @@ public class GroupAnagrams {
         
         System.out.println("\nTesting null input:");
         System.out.println(group(null));
+        
+        boolean areAnagramWithoutSort = areAnagramWithoutSort("eat", "tea");
+        System.out.println(areAnagramWithoutSort);
     }
 }

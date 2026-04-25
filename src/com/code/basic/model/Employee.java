@@ -2,7 +2,6 @@ package com.code.basic.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 public class Employee {
 
@@ -75,7 +74,7 @@ public class Employee {
         employees.add(new Employee(11, "Michael Anderson", "Finance", 82000.0));
         employees.add(new Employee(12, "Barbara Thomas", "IT", 68000.0));
         employees.add(new Employee(13, "William Jackson", "Marketing", 74000.0));
-        employees.add(new Employee(14, "Elizabeth White", "HR", 88000.0));
+        employees.add(new Employee(14, "Elizabeth White", "IT", 88000.0));
         employees.add(new Employee(15, "Richard Harris", "Finance", 88000.0));
         return employees;
     }

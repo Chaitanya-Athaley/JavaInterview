@@ -1,0 +1,70 @@
+Back End  
+Question No: 1	 
+Given an integer array nums, return an array answer such that answer[i] is equal to the product of all the elements of nums except nums[i].   
+The product of any prefix or suffix of nums is guaranteed to fit in a 32-bit integer.   
+You must write an algorithm that runs in O(n) time and without using the division operation.   
+Example 1: Input: nums = [1,2,3,4] Output: [24,12,8,6]   
+Example 2: Input: nums = [-1,1,0,-3,3] Output: [0,0,9,0,0] 
+ 
+Question No 2.	 
+you are given a string s, which contains stars *. In one operation, you can: · Choose a star in s. · Remove the closest non-star character to its left, as well as remove the star itself.  
+ Return the string after all stars have been removed.   
+Note:   
+· The input will be generated such that the operation is always possible.   
+· It can be shown that the resulting string will always be unique.   
+ 
+Example 1:   
+Input: s = ""leet**cod*e"" Output: ""lecoe"" Explanation: Performing the removals from left to right: - The closest character to the 1st star is 't' in ""leet**cod*e"". s becomes ""lee*cod*e"". - The closest character to the 2nd star is 'e' in ""lee*cod*e"". s becomes ""lecod*e"". - The closest character to the 3rd star is 'd' in ""lecod*e"". s becomes ""lecoe"". There are no more stars, so we return ""lecoe"".    
+ 
+Example 2:   
+Input: s = ""erase*****"" Output: """" Explanation: The entire string is removed, so we return an empty string. 
+-----------------------------------------
+1. Introduce yourself and explain your project in detail
+2. What is the difference between Lazy Loading and Eager Loading?
+3. Explain the Factory Design Pattern (with a real-time use case)
+4. What is JWT Authentication and how have you implemented it?
+5. Difference between IoC (Inversion of Control) and Dependency Injection
+6. What are the types of Dependency Injection?
+7. MCQs based on Spring Boot fundamentals
+8. Improve and optimize a given code snippet
+9. Find the second-highest number in an array
+10. Write logic to search a file in a nested directory
+
+🔹 𝟮𝗻𝗱 𝗥𝗼𝘂𝗻𝗱 – 𝗔𝗱𝘃𝗮𝗻𝗰𝗲𝗱 𝗧𝗲𝗰𝗵𝗻𝗶𝗰𝗮𝗹
+
+
+1. How have you implemented Spring Security in your project?
+2. What are Spring Boot Profiles, and how did you use them?
+3. Explain Exception Handling and what is a Controller Advisor?
+4. How does the @Transactional annotation work internally?
+5. Explain Microservices Architecture with your project example
+6. What is Kafka, and how does it work?
+7. Explain commonly used Design Patterns
+8. What are the key Java 8 features?
+9. How did you implement Scheduling in your project?
+10. How do you create an Optional object in Java?
+
+🔹 𝗛𝗥 𝗥𝗼𝘂𝗻𝗱
+
+🔹 𝗢𝗻𝘀𝗶𝘁𝗲 / 𝗙𝗶𝗻𝗮𝗹 𝗧𝗲𝗮𝗺 𝗥𝗼𝘂𝗻𝗱
+
+1. Deep dive into project architecture
+2. Scenario-based and real-time problem discussions
+
+
+
+1) how does java handles memory management and Garbage collectors ?
+2) new features of java 8 and java 17
+3) design thread pool from scratch
+4) CompletableFuture ?
+5) handle race condition
+6) Heap structure
+7) Parallel Stream internal working -> ForkJoinPool and divide the data into smaller chunks using a Spliterator
+8) How CompletableFuture is different from Future. Write code for Completable Future and how will you handle exceptions in it.
+9) garbage collector method, can we call garbage collector
+10) Why we have maven? what it will do?
+11) What are the key differences between TLS and mTLS, and when would you use each?
+
+Coding ---------------
+1) Find the first smallest unique even number from the given list using streams concepts .
+

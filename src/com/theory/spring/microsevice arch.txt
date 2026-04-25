@@ -1,0 +1,78 @@
+🧭 E-Commerce Microservices Architecture (10M+ Users)
+                    ┌──────────────────────────────────────────────┐
+                    │                Users / Clients               │
+                    │──────────────────────────────────────────────│
+                    │  Web App  |  Mobile App  |  Admin Dashboard  │
+                    └──────────────────────────────────────────────┘
+                                       │
+                                       ▼
+                           ┌────────────────────────┐
+                           │       CDN + WAF        │
+                           │ (CloudFront / Akamai)  │
+                           └────────────────────────┘
+                                       │
+                                       ▼
+                           ┌────────────────────────┐
+                           │      API GATEWAY       │
+                           │ (Kong / Envoy / AWS GW)│
+                           └────────────────────────┘
+                                       │
+             ┌────────────────────────────────────────────────────────────────────┐
+             │                             SERVICE MESH                           │
+             │                  (Istio / Linkerd for mTLS, tracing)               │
+             └────────────────────────────────────────────────────────────────────┘
+                                       │
+          ┌────────────────────────────────────────────────────────────────────────┐
+          │                         DOMAIN MICROSERVICES                           │
+          │────────────────────────────────────────────────────────────────────────│
+          │                                                                        │
+          │  ┌────────────────┐     ┌─────────────────┐    ┌──────────────────┐   │
+          │  │ Auth Service   │     │ Product Catalog │    │  Search Service  │   │
+          │  │ JWT/OAuth2     │     │ Product Info DB │    │  Elasticsearch   │   │
+          │  └────────────────┘     └─────────────────┘    └──────────────────┘   │
+          │          │                            │                    │          │
+          │  ┌────────────────┐     ┌─────────────────┐    ┌──────────────────┐   │
+          │  │ Cart Service   │────▶│ Order Service   │───▶│ Inventory Service│   │
+          │  │ Redis Cache    │     │ Saga Workflow   │    │ Stock DB / Redis │   │
+          │  └────────────────┘     └─────────────────┘    └──────────────────┘   │
+          │          │                                   │                        │
+          │  ┌────────────────┐     ┌─────────────────┐  │   ┌──────────────────┐ │
+          │  │ Payment Service│◀───▶│ Notification Svc│◀─┘   │ Shipping Service │ │
+          │  │ Gateway APIs   │     │ Email/SMS/Push  │      │ Tracking API     │ │
+          │  └────────────────┘     └─────────────────┘      └──────────────────┘ │
+          │                                                                        │
+          └────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+                    ┌──────────────────────────────────────────┐
+                    │        EVENT STREAM / MESSAGE BUS        │
+                    │           (Kafka / Pulsar / RabbitMQ)    │
+                    └──────────────────────────────────────────┘
+                                       │
+                 ┌────────────────────────────┬────────────────────────────┐
+                 │                            │                            │
+                 ▼                            ▼                            ▼
+        ┌────────────────┐         ┌────────────────┐          ┌──────────────────┐
+        │ Analytics Svc  │         │ Recommendation │          │ Audit / Logging  │
+        │ Data Lake (S3) │         │ ML Models API  │          │ ELK / OpenSearch │
+        └────────────────┘         └────────────────┘          └──────────────────┘
+                                       │
+                                       ▼
+                           ┌────────────────────────┐
+                           │     OBSERVABILITY     │
+                           │ Prometheus | Grafana  │
+                           │ Traces: Jaeger/Tempo  │
+                           │ Logs: ELK/OpenSearch  │
+                           └────────────────────────┘
+                                       │
+                                       ▼
+                           ┌────────────────────────┐
+                           │   DEPLOYMENT LAYER     │
+                           │ Kubernetes (EKS/GKE)   │
+                           │ CI/CD: ArgoCD / Flux   │
+                           └────────────────────────┘
+“At the top, users connect through a CDN and API Gateway for routing, caching, and security.
+Inside Kubernetes, we deploy independent domain microservices like Auth, Product, Order, Payment, and Inventory — each with its own database.
+They communicate asynchronously through Kafka and synchronously via REST/gRPC.
+Cross-cutting concerns such as metrics, logging, tracing, and security are managed through a service mesh and observability stack.
+Finally, everything is deployed via GitOps CI/CD pipelines with autoscaling and high availability.”
