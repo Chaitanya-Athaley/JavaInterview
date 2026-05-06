@@ -22,7 +22,7 @@ public class MaxProfitStock {
 
 	public static void main(String[] args) {
 		int[] prices = { 7, 1, 5, 3, 6, 4 };
-		System.out.println(maxProfit(prices)); // Output: 5
+		System.out.println(maxProfitBrute(prices)); // Output: 5
 	}
 
 	//alternate
