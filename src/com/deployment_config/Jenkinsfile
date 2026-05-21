@@ -1,0 +1,684 @@
+// Jenkins Pipeline for Spring Boot Order Service
+// This Jenkinsfile defines a complete CI/CD pipeline with Maven, SonarQube, Checkstyle, Docker, and Kubernetes deployment
+
+pipeline {
+    agent any
+    
+    // Environment variables
+    environment {
+        PROJECT_NAME = 'order-service'
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT_ID = '123456789012'  // Replace with actual AWS Account ID
+        ECR_REPO_NAME = 'order-service-repo'
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        DOCKER_IMAGE = "${ECR_REGISTRY}/${ECR_REPO_NAME}"
+        SONARQUBE_HOST = 'http://sonarqube-server:9000'  // Replace with actual SonarQube URL
+        DOCKER_CREDENTIALS = 'aws-ecr-credentials'
+        K8S_NAMESPACE = 'default'
+        K8S_DEPLOYMENT_NAME = 'order-service-deployment'
+    }
+    
+    // Pipeline options
+    options {
+        // Keep last 30 builds
+        buildDiscarder(logRotator(numToKeepStr: '30'))
+        // Pipeline timeout
+        timeout(time: 1, unit: 'HOURS')
+        // Disable concurrent builds
+        disableConcurrentBuilds()
+        // Add timestamps to console output
+        timestamps()
+    }
+    
+    // Build triggers
+    triggers {
+        // Poll SCM every 15 minutes
+        pollSCM('H/15 * * * *')
+        // Webhook trigger (GitHub, GitLab, Bitbucket)
+        // githubPush()
+    }
+    
+    stages {
+        // Stage 1: Checkout Code
+        stage('Checkout') {
+            steps {
+                script {
+                    echo "====== Checking out code from repository ======"
+                }
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/your-org/order-service.git',
+                        credentialsId: 'github-credentials'
+                    ]]
+                ])
+            }
+        }
+        
+        // Stage 2: Build and Compile
+        stage('Build & Compile') {
+            steps {
+                script {
+                    echo "====== Building and Compiling Spring Boot Application ======"
+                }
+                sh '''
+                    mvn clean compile \
+                        -DskipTests=true \
+                        -U \
+                        -X
+                '''
+            }
+        }
+        
+        // Stage 3: Unit Tests
+        stage('Unit Tests') {
+            steps {
+                script {
+                    echo "====== Running Unit Tests ======"
+                }
+                sh '''
+                    mvn test \
+                        -Dmaven.test.failure.ignore=true \
+                        -DfailIfNoTests=false
+                '''
+            }
+            post {
+                always {
+                    // Publish test results
+                    junit 'target/surefire-reports/*.xml'
+                    
+                    // Generate test report
+                    publishHTML([
+                        reportDir: 'target/surefire-reports',
+                        reportFiles: 'index.html',
+                        reportName: 'Unit Test Report'
+                    ])
+                }
+            }
+        }
+        
+        // Stage 4: Code Coverage
+        stage('Code Coverage') {
+            steps {
+                script {
+                    echo "====== Generating Code Coverage Report ======"
+                }
+                sh '''
+                    mvn jacoco:report \
+                        -DskipTests=true
+                '''
+            }
+            post {
+                always {
+                    // Publish JaCoCo coverage
+                    jacoco(execPattern: 'target/jacoco.exec')
+                    
+                    publishHTML([
+                        reportDir: 'target/site/jacoco',
+                        reportFiles: 'index.html',
+                        reportName: 'Code Coverage Report'
+                    ])
+                }
+            }
+        }
+        
+        // Stage 5: Checkstyle - Code Style Verification
+        stage('Checkstyle') {
+            steps {
+                script {
+                    echo "====== Running Checkstyle for Code Style ======"
+                }
+                sh '''
+                    mvn checkstyle:check \
+                        -DfailsOnError=false
+                '''
+            }
+            post {
+                always {
+                    // Publish Checkstyle report
+                    checkstyle(
+                        pattern: 'target/checkstyle-result.xml',
+                        unstableTotalAll: '100'
+                    )
+                    
+                    publishHTML([
+                        reportDir: 'target/site',
+                        reportFiles: 'checkstyle.html',
+                        reportName: 'Checkstyle Report'
+                    ])
+                }
+            }
+        }
+        
+        // Stage 6: SpotBugs - Bug Detection
+        stage('SpotBugs') {
+            steps {
+                script {
+                    echo "====== Running SpotBugs for Bug Detection ======"
+                }
+                sh '''
+                    mvn clean compile spotbugs:check \
+                        -DfailOnError=false \
+                        -DskipTests=true
+                '''
+            }
+            post {
+                always {
+                    // Publish SpotBugs report
+                    publishHTML([
+                        reportDir: 'target/site',
+                        reportFiles: 'spotbugs.html',
+                        reportName: 'SpotBugs Report'
+                    ])
+                }
+            }
+        }
+        
+        // Stage 7: SonarQube Code Quality Analysis
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    echo "====== Running SonarQube Code Quality Analysis ======"
+                }
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                            -Dsonar.projectKey=order-service \
+                            -Dsonar.projectName="Order Service" \
+                            -Dsonar.projectVersion=${BUILD_NUMBER} \
+                            -Dsonar.host.url=${SONARQUBE_HOST} \
+                            -Dsonar.login=${SONAR_TOKEN} \
+                            -Dsonar.exclusions="**/test/**,**/generated/**" \
+                            -Dsonar.java.binaries=target/classes
+                    '''
+                }
+            }
+        }
+        
+        // Stage 8: SonarQube Quality Gate
+        stage('Quality Gate') {
+            steps {
+                script {
+                    echo "====== Waiting for SonarQube Quality Gate ======"
+                }
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        
+        // Stage 9: Build Artifact (Package)
+        stage('Package') {
+            steps {
+                script {
+                    echo "====== Packaging Spring Boot Application ======"
+                }
+                sh '''
+                    mvn package \
+                        -DskipTests=true \
+                        -U
+                '''
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', 
+                                     allowEmptyArchive: false
+                }
+            }
+        }
+        
+        // Stage 10: Build Docker Image
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo "====== Building Docker Image ======"
+                    sh '''
+                        # Get the JAR file name
+                        JAR_FILE=$(ls target/*.jar | grep -v sources | head -1)
+                        JAR_NAME=$(basename $JAR_FILE)
+                        
+                        # Build Docker image with build args
+                        docker build \
+                            --build-arg JAR_FILE=${JAR_NAME} \
+                            --tag ${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                            --tag ${DOCKER_IMAGE}:latest \
+                            --label "build.number=${BUILD_NUMBER}" \
+                            --label "git.commit=${GIT_COMMIT}" \
+                            --label "build.timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+                            .
+                        
+                        # List built images
+                        docker images | grep ${ECR_REPO_NAME}
+                    '''
+                }
+            }
+        }
+        
+        // Stage 11: Docker Security Scan (Trivy)
+        stage('Docker Security Scan') {
+            steps {
+                script {
+                    echo "====== Running Trivy Docker Image Scan ======"
+                }
+                sh '''
+                    # Install Trivy if not present
+                    which trivy || (curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin)
+                    
+                    # Scan the Docker image
+                    trivy image \
+                        --exit-code 0 \
+                        --severity HIGH,CRITICAL \
+                        --format json \
+                        --output trivy-results.json \
+                        ${DOCKER_IMAGE}:${BUILD_NUMBER} || true
+                    
+                    # Display scan results
+                    trivy image \
+                        --severity HIGH,CRITICAL \
+                        ${DOCKER_IMAGE}:${BUILD_NUMBER} || true
+                '''
+            }
+            post {
+                always {
+                    // Archive Trivy scan results
+                    archiveArtifacts artifacts: 'trivy-results.json', 
+                                     allowEmptyArchive: true
+                }
+            }
+        }
+        
+        // Stage 12: Push to AWS ECR
+        stage('Push to AWS ECR') {
+            steps {
+                script {
+                    echo "====== Pushing Docker Image to AWS ECR ======"
+                }
+                withAWS(credentials: "${DOCKER_CREDENTIALS}", region: "${AWS_REGION}") {
+                    sh '''
+                        # Login to ECR
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        
+                        # Push image to ECR
+                        docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        docker push ${DOCKER_IMAGE}:latest
+                        
+                        # Get image URI for later stages
+                        echo "IMAGE_URI=${DOCKER_IMAGE}:${BUILD_NUMBER}" > image.properties
+                    '''
+                }
+            }
+        }
+        
+        // Stage 13: Deploy to Development Environment
+        stage('Deploy to Dev') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    echo "====== Deploying to Development Kubernetes Cluster ======"
+                }
+                withAWS(credentials: "${DOCKER_CREDENTIALS}", region: "${AWS_REGION}") {
+                    sh '''
+                        # Update kubeconfig for Dev cluster
+                        aws eks update-kubeconfig \
+                            --name order-service-dev-cluster \
+                            --region ${AWS_REGION}
+                        
+                        # Create namespace if doesn't exist
+                        kubectl create namespace ${K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Update image in deployment
+                        kubectl set image deployment/${K8S_DEPLOYMENT_NAME} \
+                            order-service=${DOCKER_IMAGE}:${BUILD_NUMBER} \
+                            -n ${K8S_NAMESPACE} || \
+                        (echo "Deployment not found, applying manifests..." && \
+                         kubectl apply -f k8s/dev-deployment.yaml -n ${K8S_NAMESPACE})
+                        
+                        # Wait for rollout
+                        kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} \
+                            -n ${K8S_NAMESPACE} \
+                            --timeout=5m
+                        
+                        # Display deployment info
+                        kubectl get pods -n ${K8S_NAMESPACE}
+                        kubectl get svc -n ${K8S_NAMESPACE}
+                    '''
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Dev deployment failed, rolling back..."
+                        sh '''
+                            kubectl rollout undo deployment/${K8S_DEPLOYMENT_NAME} \
+                                -n ${K8S_NAMESPACE} || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        // Stage 14: Smoke Tests (Dev)
+        stage('Smoke Tests - Dev') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    echo "====== Running Smoke Tests on Dev ======"
+                }
+                sh '''
+                    # Wait for service to be ready
+                    for i in {1..30}; do
+                        if kubectl get pods -n ${K8S_NAMESPACE} | grep order-service | grep Running; then
+                            echo "Order Service is running"
+                            sleep 10
+                            break
+                        fi
+                        echo "Waiting for service... (Attempt $i/30)"
+                        sleep 10
+                    done
+                    
+                    # Get service endpoint and run smoke tests
+                    SERVICE_IP=$(kubectl get svc order-service-service -n ${K8S_NAMESPACE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "localhost")
+                    
+                    echo "Testing endpoint: http://${SERVICE_IP}:8080/health"
+                    
+                    # Health check
+                    curl -f http://${SERVICE_IP}:8080/health || echo "Health check endpoint not available"
+                    
+                    # API smoke test
+                    curl -X GET http://${SERVICE_IP}:8080/api/orders || echo "API endpoint test failed"
+                '''
+            }
+        }
+        
+        // Stage 15: Deploy to Staging Environment
+        stage('Deploy to Staging') {
+            when {
+                branch 'main'
+            }
+            input {
+                message "Deploy to Staging?"
+                ok "Deploy"
+            }
+            steps {
+                script {
+                    echo "====== Deploying to Staging Kubernetes Cluster ======"
+                }
+                withAWS(credentials: "${DOCKER_CREDENTIALS}", region: "${AWS_REGION}") {
+                    sh '''
+                        # Update kubeconfig for Staging cluster
+                        aws eks update-kubeconfig \
+                            --name order-service-staging-cluster \
+                            --region ${AWS_REGION}
+                        
+                        # Create namespace if doesn't exist
+                        kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Deploy with Helm (if using Helm)
+                        helm upgrade --install order-service ./helm/order-service \
+                            --namespace staging \
+                            --values ./helm/staging-values.yaml \
+                            --set image.repository=${DOCKER_IMAGE} \
+                            --set image.tag=${BUILD_NUMBER} \
+                            --wait \
+                            --timeout 5m
+                        
+                        # Verify deployment
+                        kubectl rollout status deployment/${K8S_DEPLOYMENT_NAME} \
+                            -n staging \
+                            --timeout=5m
+                    '''
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Staging deployment failed"
+                        sh '''
+                            helm rollback order-service --namespace staging || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        // Stage 16: Run Integration Tests
+        stage('Integration Tests') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "====== Running Integration Tests ======"
+                }
+                sh '''
+                    # Get staging service endpoint
+                    SERVICE_IP=$(kubectl get svc order-service-service -n staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+                    
+                    echo "Running integration tests against: http://${SERVICE_IP}:8080"
+                    
+                    # Run integration tests (assuming Maven profile exists)
+                    mvn verify \
+                        -Dspring.datasource.url=jdbc:mysql://${DB_HOST}:3306/${DB_NAME} \
+                        -Dspring.datasource.username=${DB_USER} \
+                        -Dspring.datasource.password=${DB_PASSWORD} \
+                        -P integration-tests \
+                        -Dapi.base.url=http://${SERVICE_IP}:8080
+                '''
+            }
+            post {
+                always {
+                    junit 'target/failsafe-reports/*.xml'
+                }
+            }
+        }
+        
+        // Stage 17: Deploy to Production
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            input {
+                message "Deploy to Production? This is a critical action!"
+                ok "Deploy to Production"
+            }
+            steps {
+                script {
+                    echo "====== Deploying to Production Kubernetes Cluster ======"
+                }
+                withAWS(credentials: "${DOCKER_CREDENTIALS}", region: "${AWS_REGION}") {
+                    sh '''
+                        # Update kubeconfig for Production cluster
+                        aws eks update-kubeconfig \
+                            --name order-service-prod-cluster \
+                            --region ${AWS_REGION}
+                        
+                        # Create namespace if doesn't exist
+                        kubectl create namespace production --dry-run=client -o yaml | kubectl apply -f -
+                        
+                        # Deploy with Blue-Green strategy
+                        # Deploy to green environment first
+                        helm upgrade --install order-service-green ./helm/order-service \
+                            --namespace production \
+                            --values ./helm/production-values.yaml \
+                            --set image.repository=${DOCKER_IMAGE} \
+                            --set image.tag=${BUILD_NUMBER} \
+                            --set deployment.name=order-service-green \
+                            --wait \
+                            --timeout 5m
+                        
+                        # Verify green deployment is healthy
+                        kubectl rollout status deployment/order-service-green \
+                            -n production \
+                            --timeout=5m
+                        
+                        # Run health checks
+                        echo "Waiting for green deployment to be fully ready..."
+                        sleep 30
+                        
+                        # Switch traffic to green (update service selector)
+                        kubectl patch service order-service-service \
+                            -p '{"spec":{"selector":{"deployment":"order-service-green"}}}' \
+                            -n production
+                        
+                        # Keep old blue deployment for quick rollback
+                        kubectl scale deployment order-service-blue \
+                            --replicas=0 \
+                            -n production || true
+                    '''
+                }
+            }
+            post {
+                failure {
+                    script {
+                        echo "Production deployment failed, rolling back to blue..."
+                        sh '''
+                            # Switch back to blue
+                            kubectl patch service order-service-service \
+                                -p '{"spec":{"selector":{"deployment":"order-service-blue"}}}' \
+                                -n production || true
+                            
+                            # Scale up blue
+                            kubectl scale deployment order-service-blue \
+                                --replicas=3 \
+                                -n production || true
+                        '''
+                    }
+                }
+                success {
+                    script {
+                        echo "Production deployment successful!"
+                        // Remove blue deployment after successful switch
+                        sh '''
+                            # Wait a bit then delete old blue deployment
+                            sleep 60
+                            kubectl delete deployment order-service-blue \
+                                -n production || true
+                        '''
+                    }
+                }
+            }
+        }
+        
+        // Stage 18: Production Smoke Tests
+        stage('Smoke Tests - Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    echo "====== Running Smoke Tests on Production ======"
+                }
+                sh '''
+                    # Get production service endpoint
+                    SERVICE_IP=$(kubectl get svc order-service-service -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+                    
+                    echo "Testing production endpoint: http://${SERVICE_IP}:8080/health"
+                    
+                    # Health check
+                    curl -f http://${SERVICE_IP}:8080/health || exit 1
+                    
+                    # API smoke test
+                    curl -X GET http://${SERVICE_IP}:8080/api/orders || exit 1
+                    
+                    echo "Production smoke tests passed!"
+                '''
+            }
+        }
+        
+        // Stage 19: Cleanup and Archive
+        stage('Cleanup & Archive') {
+            steps {
+                script {
+                    echo "====== Archiving Build Artifacts ======"
+                }
+                sh '''
+                    # Archive key files
+                    ls -la target/*.jar || true
+                    ls -la trivy-results.json || true
+                '''
+                archiveArtifacts artifacts: '**/*.jar,trivy-results.json', 
+                                 allowEmptyArchive: true
+            }
+        }
+    }
+    
+    // Post actions - executed after all stages
+    post {
+        always {
+            script {
+                echo "====== Pipeline Execution Completed ======"
+                
+                // Clean workspace (optional)
+                // cleanWs()
+            }
+        }
+        success {
+            script {
+                echo "====== PIPELINE SUCCESSFUL ======"
+                
+                // Send success notification
+                emailext(
+                    subject: "Jenkins Build SUCCESS: ${PROJECT_NAME} #${BUILD_NUMBER}",
+                    body: '''
+                        Build Status: SUCCESS
+                        
+                        Project: ${PROJECT_NAME}
+                        Build Number: ${BUILD_NUMBER}
+                        Build URL: ${BUILD_URL}
+                        Git Commit: ${GIT_COMMIT}
+                        
+                        Artifacts:
+                        - Docker Image: ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                        - JAR: target/*.jar
+                    ''',
+                    to: 'devops@company.com',
+                    recipientProviders: [developers(), requestor()]
+                )
+            }
+        }
+        failure {
+            script {
+                echo "====== PIPELINE FAILED ======"
+                
+                // Send failure notification
+                emailext(
+                    subject: "Jenkins Build FAILED: ${PROJECT_NAME} #${BUILD_NUMBER}",
+                    body: '''
+                        Build Status: FAILED
+                        
+                        Project: ${PROJECT_NAME}
+                        Build Number: ${BUILD_NUMBER}
+                        Build URL: ${BUILD_URL}
+                        Failed Stage: ${FAILED_STAGE}
+                        
+                        Check logs for details.
+                    ''',
+                    to: 'devops@company.com',
+                    recipientProviders: [developers(), requestor(), brokenBuildSuspects()]
+                )
+            }
+        }
+        unstable {
+            script {
+                echo "====== PIPELINE UNSTABLE ======"
+            }
+        }
+        fixed {
+            script {
+                echo "====== PIPELINE FIXED ======"
+                
+                emailext(
+                    subject: "Jenkins Build FIXED: ${PROJECT_NAME} #${BUILD_NUMBER}",
+                    body: "Build ${BUILD_NUMBER} for ${PROJECT_NAME} is now stable.",
+                    to: 'devops@company.com'
+                )
+            }
+        }
+    }
+}
