@@ -54,7 +54,7 @@ public class ImageGenerator {
 		// The API key should be left as "" and will be automatically
 		// populated by the environment when you run this.
 		// You must get your key from Google AI Studio.
-		String apiKey = "AIzaSyCmfJARnQM2ifqpAU83SzdQu0_S4oBRmZA";
+		String apiKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
 		// The API endpoint - Using Gemini 2.5 Flash with image generation support
 		String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" + apiKey;
