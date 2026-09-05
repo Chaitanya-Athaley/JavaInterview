@@ -150,7 +150,7 @@ public class ImageGenerator {
 		// The API key should be left as "" and will be automatically
 		// populated by the environment when you run this.
 		// You must get your key from Google AI Studio.
-		// String apiKey = "AIzaSyDe77Bh0zq7H_MSxgz-CzkMAa3qaooP_Uw";
+		// String apiKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
 		System.out.println("=== ImageGenerator Status ===\n");
 		System.out.println("✓ API endpoint is CORRECT");
